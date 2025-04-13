@@ -127,6 +127,9 @@ build {
     inline = [
       "SOURCE=${source.name}",
       "OUTPUT=${var.filename}",
+      "mkdir -p output-${source.name}/curtin",
+      "cp -v ${path.root}/curtin/* output-${source.name}/curtin/",
+      "chmod +x output-${source.name}/curtin/*",
       "source ../scripts/fuse-nbd",
       "source ../scripts/fuse-tar-root",
       "rm -rf output-${source.name}",
