@@ -14,6 +14,12 @@ variable "filename" {
   description = "The filename of the tarball to produce"
 }
 
+variable "ansible_playbook" {
+  type        = string
+  default     = "ansible/playbook.yml"
+  description = "Path to the Ansible playbook to run"
+}
+
 variable ks_proxy {
   type    = string
   default = "${env("KS_PROXY")}"
@@ -79,7 +85,11 @@ locals {
 source "qemu" "rocky9" {
   boot_command     = ["<up><wait>", "e", "<down><down><down><left>", " console=ttyS0 inst.cmdline inst.text inst.ks=http://{{.HTTPIP}}:{{.HTTPPort}}/rocky9.ks <f10>"]
   boot_wait        = "5s"
-  communicator     = "none"
+  communicator     = "ssh"
+  ssh_username     = "rocky"
+  ssh_password     = "rocky"
+  ssh_timeout      = "30m"
+  ssh_port         = 22
   disk_size        = "45G"
   format           = "qcow2"
   headless         = true
@@ -95,7 +105,7 @@ source "qemu" "rocky9" {
     ["-device", "qemu-xhci"],
     ["-device", "usb-kbd"],
     ["-device", "virtio-net-pci,netdev=net0"],
-    ["-netdev", "user,id=net0"],
+    ["-netdev", "user,id=net0,hostfwd=tcp::{{ .SSHHostPort }}-:22"],
     ["-device", "virtio-blk-pci,drive=drive0,bootindex=0"],
     ["-device", "virtio-blk-pci,drive=cdrom0,bootindex=1"],
     ["-machine", "${lookup(local.qemu_machine, var.architecture, "")}"],
@@ -107,6 +117,7 @@ source "qemu" "rocky9" {
     ["-drive", "file=output-rocky9/packer-rocky9,if=none,id=drive0,cache=writeback,discard=ignore,format=qcow2"],
     ["-drive", "file=packer_cache/Rocky-${var.architecture}-boot.iso,if=none,id=cdrom0,media=cdrom"]
   ]
+  shutdown_command = "sudo -S shutdown -P now"
   shutdown_timeout = var.timeout
   http_content = {
     "/rocky9.ks" = templatefile("${path.root}/http/rocky9.ks.pkrtpl.hcl",
@@ -122,6 +133,14 @@ source "qemu" "rocky9" {
 
 build {
   sources = ["source.qemu.rocky9"]
+
+  provisioner "ansible" {
+    playbook_file = "${path.root}/${var.ansible_playbook}"
+    user = "rocky"
+    extra_arguments = [
+      "--extra-vars", "ansible_become_password=rocky"
+    ]
+  }
 
   post-processor "shell-local" {
     inline = [

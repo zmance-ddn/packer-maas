@@ -1,0 +1,43 @@
+---
+# Main playbook for Rocky 9 customization
+- name: Configure Rocky 9 image
+  hosts: default
+  become: yes
+  tasks:
+    - name: Install EPEL repository
+      dnf:
+        name: epel-release
+        state: present
+
+    - name: Install lldpd package
+      dnf:
+        name: lldpd
+        state: present
+
+    - name: Ensure lldpd service is enabled
+      systemd:
+        name: lldpd
+        enabled: yes
+        state: started
+
+    - name: Create /opt/test directory
+      file:
+        path: /opt/test
+        state: directory
+        mode: '0755'
+
+    - name: Create hello world file
+      copy:
+        content: "Hello World from Ansible!\nThis file was created during the image build process.\n"
+        dest: /opt/test/hello.txt
+        mode: '0644'
+
+    - name: Install additional useful packages
+      dnf:
+        name:
+          - vim
+          - htop
+          - tmux
+          - iotop
+          - net-tools
+        state: present

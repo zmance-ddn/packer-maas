@@ -17,10 +17,12 @@ timezone UTC --utc
 
 # Set the first NIC to acquire IPv4 address via DHCP
 network --device eth0 --bootproto=dhcp
-# Enable firewal, let SSH through
+# Enable firewall, let SSH through
 firewall --enabled --service=ssh
 # Enable SELinux with default enforcing policy
 selinux --enforcing
+# Enable SSH service
+services --enabled=sshd
 
 # Do not set up XX Window System
 skipx
@@ -66,26 +68,6 @@ sed -i '/GRUB_SERIAL_COMMAND="serial"/d' /etc/default/grub
 sed -ri 's/(GRUB_CMDLINE_LINUX=".*)\s+console=ttyS0(.*")/\1\2/' /etc/default/grub
 sed -i 's/GRUB_ENABLE_BLSCFG=.*/GRUB_ENABLE_BLSCFG=false/g' /etc/default/grub
 
-# Install EPEL repository for netplan
-dnf install -y epel-release
-
-# Install netplan for MAAS compatibility
-dnf install -y python3-pyyaml NetworkManager
-
-# Create directory for curtin hooks
-mkdir -p /curtin
-
-# Create a basic netplan configuration
-mkdir -p /etc/netplan
-cat > /etc/netplan/01-netcfg.yaml << EOF
-network:
-  version: 2
-  renderer: NetworkManager
-EOF
-
-# Make sure NetworkManager is enabled
-systemctl enable NetworkManager
-
 yum clean all
 
 # Passwordless sudo for the user 'rocky'
@@ -125,8 +107,6 @@ lvm2
 mdadm
 device-mapper-multipath
 iscsi-initiator-utils
-python3-pyyaml
-NetworkManager
 -plymouth
 # Remove ALSA firmware
 -a*-firmware
