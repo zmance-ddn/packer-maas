@@ -16,7 +16,7 @@ keyboard us
 timezone UTC --utc
 
 # Set the first NIC to acquire IPv4 address via DHCP
-network --device eth0 --bootproto=dhcp
+network --device eth0 --bootproto=dhcp --activate --onboot=yes
 # Enable firewall, let SSH through
 firewall --enabled --service=ssh
 # Enable SELinux with default enforcing policy
@@ -67,6 +67,42 @@ sed -i 's/^GRUB_TERMINAL=.*/GRUB_TERMINAL_OUTPUT="console"/g' /etc/default/grub
 sed -i '/GRUB_SERIAL_COMMAND="serial"/d' /etc/default/grub
 sed -ri 's/(GRUB_CMDLINE_LINUX=".*)\s+console=ttyS0(.*")/\1\2/' /etc/default/grub
 sed -i 's/GRUB_ENABLE_BLSCFG=.*/GRUB_ENABLE_BLSCFG=false/g' /etc/default/grub
+
+# Install EPEL repository for netplan
+dnf install -y epel-release
+
+# Install netplan for MAAS compatibility
+dnf install -y python3-pyyaml NetworkManager
+
+# Create directory for curtin hooks
+mkdir -p /curtin
+
+# Create a basic netplan configuration
+mkdir -p /etc/netplan
+cat > /etc/netplan/01-netcfg.yaml << EOF
+network:
+  version: 2
+  renderer: NetworkManager
+EOF
+
+# Make sure NetworkManager is enabled
+systemctl enable NetworkManager
+
+# Ensure SSH is properly configured
+systemctl enable sshd
+
+# Configure SSH to allow password authentication
+sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/g' /etc/ssh/sshd_config
+
+# Ensure network device is enabled on boot
+cat > /etc/sysconfig/network-scripts/ifcfg-eth0 << EOF
+DEVICE=eth0
+BOOTPROTO=dhcp
+ONBOOT=yes
+TYPE=Ethernet
+NM_CONTROLLED=yes
+EOF
 
 yum clean all
 

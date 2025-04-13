@@ -84,12 +84,14 @@ locals {
 
 source "qemu" "rocky9" {
   boot_command     = ["<up><wait>", "e", "<down><down><down><left>", " console=ttyS0 inst.cmdline inst.text inst.ks=http://{{.HTTPIP}}:{{.HTTPPort}}/rocky9.ks <f10>"]
-  boot_wait        = "5s"
+  boot_wait        = "10s"
   communicator     = "ssh"
   ssh_username     = "rocky"
   ssh_password     = "rocky"
-  ssh_timeout      = "30m"
+  ssh_timeout      = "60m"
   ssh_port         = 22
+  ssh_wait_timeout = "60m"
+  ssh_handshake_attempts = 100
   disk_size        = "45G"
   format           = "qcow2"
   headless         = true
@@ -105,7 +107,7 @@ source "qemu" "rocky9" {
     ["-device", "qemu-xhci"],
     ["-device", "usb-kbd"],
     ["-device", "virtio-net-pci,netdev=net0"],
-    ["-netdev", "user,id=net0,hostfwd=tcp::{{ .SSHHostPort }}-:22"],
+    ["-netdev", "user,id=net0,hostfwd=tcp::{{ .SSHHostPort }}-:22,hostfwd=tcp::{{ .HTTPPort }}-:{{ .HTTPPort }}"],
     ["-device", "virtio-blk-pci,drive=drive0,bootindex=0"],
     ["-device", "virtio-blk-pci,drive=cdrom0,bootindex=1"],
     ["-machine", "${lookup(local.qemu_machine, var.architecture, "")}"],
@@ -137,8 +139,14 @@ build {
   provisioner "ansible" {
     playbook_file = "${path.root}/${var.ansible_playbook}"
     user = "rocky"
+    use_proxy = false
     extra_arguments = [
-      "--extra-vars", "ansible_become_password=rocky"
+      "--extra-vars", "ansible_become_password=rocky",
+      "-v"
+    ]
+    ansible_env_vars = [
+      "ANSIBLE_HOST_KEY_CHECKING=False",
+      "ANSIBLE_SSH_ARGS='-o ForwardAgent=yes -o ControlMaster=auto -o ControlPersist=60s -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
     ]
   }
 

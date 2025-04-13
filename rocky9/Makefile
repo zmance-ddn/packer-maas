@@ -6,7 +6,7 @@ PACKER ?= packer
 PACKER_LOG ?= 0
 TIMEOUT ?= 1h
 ARCH ?= x86_64
-ANSIBLE_PLAYBOOK ?= ansible/playbook.yml
+ANSIBLE_PLAYBOOK ?= ansible/simple-playbook.yml
 
 # Detect if running on ARM host
 ifeq ($(shell uname -m),aarch64)
@@ -52,13 +52,16 @@ else
 endif
 
 rocky9.tar.gz: check-deps clean OVMF_VARS.fd SIZE_VARS.fd
-	${PACKER} init rocky9.pkr.hcl && ${PACKER} build \
+	${PACKER} init rocky9.pkr.hcl && PACKER_LOG=${PACKER_LOG} ${PACKER} build \
 		-var architecture=${ARCH} \
 		-var host_is_arm=${HOST_IS_ARM} \
 		-var timeout=${TIMEOUT} \
 		-var ovmf_suffix=${OVMF_SFX} \
 		-var ansible_playbook=${ANSIBLE_PLAYBOOK} \
 		rocky9.pkr.hcl
+
+debug: PACKER_LOG=1
+debug: rocky9.tar.gz
 
 clean:
 	${RM} -rf *.fd output-rocky9 rocky9.tar.gz

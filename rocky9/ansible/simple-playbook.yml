@@ -1,0 +1,22 @@
+---
+# Simple playbook for testing SSH connectivity
+- name: Basic Rocky 9 configuration
+  hosts: default
+  become: yes
+  tasks:
+    - name: Create test directory
+      file:
+        path: /opt/test
+        state: directory
+        mode: '0755'
+
+    - name: Create hello world file
+      copy:
+        content: "Hello World from Ansible!\nThis file was created during the image build process.\n"
+        dest: /opt/test/hello.txt
+        mode: '0644'
+
+    - name: Install vim package
+      dnf:
+        name: vim
+        state: present
