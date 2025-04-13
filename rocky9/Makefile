@@ -7,6 +7,7 @@ PACKER_LOG ?= 0
 TIMEOUT ?= 1h
 ARCH ?= x86_64
 ANSIBLE_PLAYBOOK ?= ansible/simple-playbook.yml
+HEADLESS ?= true
 
 # Detect if running on ARM host
 ifeq ($(shell uname -m),aarch64)
@@ -58,10 +59,14 @@ rocky9.tar.gz: check-deps clean OVMF_VARS.fd SIZE_VARS.fd
 		-var timeout=${TIMEOUT} \
 		-var ovmf_suffix=${OVMF_SFX} \
 		-var ansible_playbook=${ANSIBLE_PLAYBOOK} \
+		-var headless=${HEADLESS} \
 		rocky9.pkr.hcl
 
 debug: PACKER_LOG=1
 debug: rocky9.tar.gz
+
+gui: HEADLESS=false
+gui: rocky9.tar.gz
 
 clean:
 	${RM} -rf *.fd output-rocky9 rocky9.tar.gz

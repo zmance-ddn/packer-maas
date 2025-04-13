@@ -20,6 +20,12 @@ variable "ansible_playbook" {
   description = "Path to the Ansible playbook to run"
 }
 
+variable "headless" {
+  type        = bool
+  default     = true
+  description = "Whether to run the VM in headless mode"
+}
+
 variable ks_proxy {
   type    = string
   default = "${env("KS_PROXY")}"
@@ -94,7 +100,7 @@ source "qemu" "rocky9" {
   ssh_handshake_attempts = 100
   disk_size        = "45G"
   format           = "qcow2"
-  headless         = true
+  headless         = var.headless
   iso_checksum     = "file:http://download.rockylinux.org/pub/rocky/9/isos/${var.architecture}/CHECKSUM"
   iso_url          = "http://download.rockylinux.org/pub/rocky/9/isos/${var.architecture}/Rocky-${var.architecture}-boot.iso"
   iso_target_path  = "packer_cache/Rocky-${var.architecture}-boot.iso"
@@ -107,7 +113,7 @@ source "qemu" "rocky9" {
     ["-device", "qemu-xhci"],
     ["-device", "usb-kbd"],
     ["-device", "virtio-net-pci,netdev=net0"],
-    ["-netdev", "user,id=net0,hostfwd=tcp::{{ .SSHHostPort }}-:22,hostfwd=tcp::{{ .HTTPPort }}-:{{ .HTTPPort }}"],
+    ["-netdev", "user,id=net0,hostfwd=tcp::{{ .SSHHostPort }}-:22"],
     ["-device", "virtio-blk-pci,drive=drive0,bootindex=0"],
     ["-device", "virtio-blk-pci,drive=cdrom0,bootindex=1"],
     ["-machine", "${lookup(local.qemu_machine, var.architecture, "")}"],
